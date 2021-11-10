@@ -9,13 +9,16 @@ pub struct Evaluator {}
 
 impl Evaluator {
     const PIECE_VALUE: [i32; 22] = [
-        0, 0, 10000, -10000, 567, -567, 528, -528, 951, -951, 1087, -1087, 93, -93, 582, -582,
+        0, 0, 100000, -100000, 567, -567, 528, -528, 951, -951, 1087, -1087, 93, -93, 582, -582,
         1101, -1101, 1550, -1550, 598, -598,
     ];
     pub fn evaluate(b: &Board) -> i32 {
         let mut sum = 0;
         for p in b.squares {
             sum += Evaluator::PIECE_VALUE[p.0 as usize];
+        }
+        for p in b.hands {
+            sum += Evaluator::PIECE_VALUE[p.0 as usize] * 9 / 10;
         }
         return sum * (b.turn.val() as i32);
     }
@@ -32,8 +35,13 @@ pub struct SearchResult {
 impl Searcher {
     const MAX_SCORE: i32 = 1000000;
 
-    pub fn find_best_move(b: &Board) -> SearchResult {
-        Searcher::rec_search(b, 5)
+    pub fn find_best_move(b: &Board) -> Option<SearchResult> {
+        let result = Searcher::rec_search(b, 3);
+        if result.m == Searcher::invalid_move() {
+            None
+        } else {
+            Some(result)
+        }
     }
 
     fn rec_search(b: &Board, depth: u8) -> SearchResult {
@@ -45,23 +53,23 @@ impl Searcher {
         moves.shuffle(&mut rand::thread_rng());
         let mut best: SearchResult = SearchResult {
             m: Searcher::invalid_move(),
-            score: Searcher::MAX_SCORE * -1,
+            score: Searcher::MAX_SCORE * -2,
             searched: 0,
         };
 
         let mut next_board = b.clone();
         for m in moves {
-            next_board.squares = b.squares;
-            next_board.turn = b.turn;
+            next_board.copy_from(b);
             next_board.put_move(&m);
 
             match depth {
                 0 => {
                     let score = Evaluator::evaluate(&next_board) * -1;
+                    best.searched += 1;
+
                     if score > best.score {
                         best.m = m;
                         best.score = score;
-                        best.searched += 1;
                     }
                 }
                 _ => {
@@ -81,23 +89,15 @@ impl Searcher {
 
     fn evaluate_game_end(b: &Board) -> SearchResult {
         let is_finished = b.is_finished();
-        if is_finished.0 {
-            SearchResult {
-                m: Searcher::invalid_move(),
-                score: if is_finished.1 == b.turn {
-                    Searcher::MAX_SCORE // win
-                } else {
-                    Searcher::MAX_SCORE * -1 // lose
-                },
-                searched: 1,
-            }
-        } else {
-            // no move found
-            SearchResult {
-                m: Searcher::invalid_move(),
-                score: Searcher::MAX_SCORE * -1,
-                searched: 1,
-            }
+        if !is_finished.0 {
+            panic!("No move available");
+        } else if is_finished.1 == b.turn {
+            panic!("Turn started without opponent king. {}", b,);
+        }
+        SearchResult {
+            m: Searcher::invalid_move(),
+            score: Searcher::MAX_SCORE * -1,
+            searched: 1,
         }
     }
 

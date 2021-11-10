@@ -38,7 +38,12 @@ static PIECE_MOVES: Lazy<HashMap<u8, Vec<Vec<(i8, i8)>>>> = Lazy::new(|| {
         vec![(1, -1), (2, -2), (3, -3), (4, -4)],
         vec![(1, 1), (2, 2), (3, 3), (4, 4)],
     ];
-    let rook = vec![vec![(-1, 0)], vec![(0, -1)], vec![(0, 1)], vec![(1, 0)]];
+    let rook = vec![
+        vec![(-1, 0), (-2, 0), (-3, 0), (-4, 0)],
+        vec![(0, -1), (0, -2), (0, -3), (0, -4)],
+        vec![(0, 1), (0, 2), (0, 3), (0, 4)],
+        vec![(1, 0), (2, 0), (3, 0), (4, 0)],
+    ];
     let pawn = vec![vec![(-1, 0)]];
 
     for i in 2..=21 {
@@ -114,6 +119,8 @@ impl MoveGen {
 
         let my_turn = board.turn;
         let mut moves = Vec::new();
+
+        // move piece
         for (pos, piece) in board.squares.iter().enumerate() {
             if *piece == Piece::ABSENT || piece.turn() != my_turn {
                 continue;
@@ -135,6 +142,20 @@ impl MoveGen {
                 }
             }
         }
+
+        // piece from hands
+        for (pos, piece) in board.hands.iter().enumerate() {
+            if *piece == Piece::ABSENT || piece.turn() != my_turn {
+                continue;
+            }
+            for dst in 0..25 {
+                if board.at(dst) != Piece::ABSENT {
+                    continue;
+                }
+                moves.push(Move::new(piece, (100 + pos) as u8, dst as u8, false))
+            }
+        }
+
         moves
     }
 }

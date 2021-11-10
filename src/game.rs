@@ -8,6 +8,7 @@ pub struct Board {
     // squares: u128,
     pub squares: [Piece; 25],
     pub turn: Turn,
+    pub hands: [Piece; 10],
 }
 
 impl Board {
@@ -27,7 +28,14 @@ impl Board {
         Board {
             squares: s,
             turn: Turn::Black,
+            hands: [Piece::ABSENT; 10],
         }
+    }
+
+    pub fn copy_from(&mut self, from: &Board) {
+        self.squares = from.squares;
+        self.turn = from.turn;
+        self.hands = from.hands;
     }
 
     pub const fn at(&self, pos: usize) -> Piece {
@@ -35,9 +43,26 @@ impl Board {
     }
 
     pub fn put_move(&mut self, m: &Move) {
-        self.squares[m.src as usize] = Piece::ABSENT;
+        let took = self.squares[m.dst as usize];
+
+        if m.src >= 100 {
+            // from hands
+            self.hands[(m.src - 100) as usize] = Piece::ABSENT;
+        } else {
+            // move in board
+            self.squares[m.src as usize] = Piece::ABSENT;
+        }
         self.squares[m.dst as usize] = m.piece;
-        self.turn = self.turn.next()
+        self.turn = self.turn.next();
+
+        if took != Piece::ABSENT {
+            for i in 0..10 {
+                if self.hands[i] == Piece::ABSENT {
+                    self.hands[i] = took.flip();
+                    break;
+                }
+            }
+        }
     }
 
     pub fn is_finished(&self) -> (bool, Turn) {
@@ -77,7 +102,13 @@ impl std::fmt::Display for Board {
                 self.at(y * 5 + 4).to_str(),
             ));
         }
-        write!(f, "{}", buf)
+        buf.push_str("Hands: ");
+        for h in self.hands {
+            if h != Piece::ABSENT {
+                buf.push_str(&format!("{} ", h.to_str()));
+            }
+        }
+        write!(f, "{}\n", buf)
     }
 }
 

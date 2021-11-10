@@ -13,8 +13,14 @@ fn main() {
 
     let mut evaluated = 0;
     let start = SystemTime::now();
-    for _ in 0..100 {
+    for i in 0..1000 {
         let best_move = Searcher::find_best_move(&b);
+        if let None = best_move {
+            println!("Game has finished in {} moves", i);
+            break;
+        }
+        let best_move = best_move.unwrap();
+
         b.put_move(&best_move.m);
         println!("Selected move : {:?}", best_move.m);
         println!(
@@ -23,12 +29,16 @@ fn main() {
         );
         evaluated += best_move.searched;
         println!("{}", b);
+
+        if i == 299 {
+            println!("Too long game.");
+            break;
+        }
     }
-    println!("Game finished");
 
     let ms = start.elapsed().unwrap().as_millis();
     println!(
-        "Evaluated {} boards in total in {} ms. Speed : {} boards/sec",
+        "Evaluated {} boards in {} ms. ({} boards/sec)",
         evaluated,
         ms,
         (evaluated as u128) * 1000 / ms

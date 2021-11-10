@@ -12,6 +12,3 @@ pprof = { version = "0.4", features = ["flamegraph"] }
 
 [profile.release]
 debug = 1
-
-[rust]
-debuginfo-level = 1

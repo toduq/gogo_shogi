@@ -8,9 +8,9 @@ static BOARD_REPR: Lazy<Vec<String>> = Lazy::new(|| {
     let mut v: Vec<String> = Vec::new();
     v.push("  ".to_string());
     v.push("  ".to_string());
-    for s in ["k", "g", "s", "b", "r", "p", "S", "B", "R", "P"] {
-        v.push(format!("\x1b[32m^{}\x1b[m", s));
-        v.push(format!("\x1b[33mv{}\x1b[m", s));
+    for s in ["王", "金", "銀", "角", "飛", "歩", "全", "馬", "龍", "と"] {
+        v.push(format!("\x1b[32m{}\x1b[m", s));
+        v.push(format!("\x1b[33m{}\x1b[m", s));
     }
     v
 });
@@ -75,6 +75,14 @@ impl Piece {
             Turn::Black
         } else {
             Turn::White
+        }
+    }
+
+    pub fn of_turn(&self, turn: Turn) -> Piece {
+        if self.turn() == turn {
+            *self
+        } else {
+            self.flip()
         }
     }
 

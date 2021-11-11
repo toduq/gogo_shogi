@@ -4,8 +4,6 @@ pub use self::piece::Piece;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Board {
-    // |turn(1)|none(3)|piece(5*25=125)|
-    // squares: u128,
     pub squares: [Piece; 25],
     pub turn: Turn,
     pub hands: [Piece; 10],
@@ -72,7 +70,11 @@ impl Board {
         if took != Piece::ABSENT {
             for i in 0..10 {
                 if self.hands[i] == Piece::ABSENT {
-                    self.hands[i] = took.flip();
+                    self.hands[i] = if took.0 >= 14 {
+                        Piece(took.flip().0 - 8)
+                    } else {
+                        took.flip()
+                    };
                     break;
                 }
             }

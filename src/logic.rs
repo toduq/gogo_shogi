@@ -3,7 +3,8 @@ mod move_gen;
 pub use self::move_gen::MoveGen;
 
 use super::game::*;
-use rand::seq::SliceRandom;
+use rand::prelude::RngCore;
+use std::collections::HashSet;
 
 pub struct Evaluator {}
 
@@ -20,6 +21,12 @@ impl Evaluator {
         for p in b.hands {
             sum += Evaluator::PIECE_VALUE[p.0 as usize] * 9 / 10;
         }
+        let move_dst: HashSet<u8> = MoveGen::valid_moves(b)
+            .iter()
+            .filter(|m| m.src < 100)
+            .map(|m| m.src)
+            .collect();
+        sum += move_dst.len() as i32;
         return sum * (b.turn.val() as i32);
     }
 }
@@ -33,7 +40,7 @@ pub struct SearchResult {
 }
 
 impl Searcher {
-    const SEARCH_DEPTH: u8 = 3;
+    const SEARCH_DEPTH: u8 = 4;
     const SCORE_LIMIT: i32 = 100_000_000;
 
     pub fn find_best_move(b: &Board) -> Option<SearchResult> {
@@ -52,7 +59,7 @@ impl Searcher {
 
     // if rec_search finds `score > beta`, the result will be discarded by alpha-beta.
     fn rec_search(b: &Board, depth: u8, alpha: i32, beta: i32) -> SearchResult {
-        let mut moves = MoveGen::valid_moves(b);
+        let moves = MoveGen::valid_moves(b);
         if moves.is_empty() {
             return Searcher::evaluate_game_end(b, depth);
         }
@@ -64,7 +71,8 @@ impl Searcher {
             };
         }
 
-        moves.shuffle(&mut rand::thread_rng());
+        let moves = Searcher::reorder_moves(b, &moves);
+
         let mut best: SearchResult = SearchResult {
             m: Searcher::invalid_move(),
             score: alpha,
@@ -104,6 +112,28 @@ impl Searcher {
             score: Searcher::SCORE_LIMIT * -1 - (depth as i32) + 100,
             searched: 1,
         }
+    }
+
+    // re-order moves for alpha-beta cut
+    fn reorder_moves(b: &Board, moves: &Vec<Move>) -> Vec<Move> {
+        let mut tupls: Vec<(Move, i32)> = moves
+            .iter()
+            .map(|m| (*m, Searcher::move_priority(b, &m)))
+            .collect();
+        tupls.sort_by(|a, b| b.1.cmp(&a.1));
+        tupls.iter().map(|t| t.0).collect()
+    }
+
+    fn move_priority(b: &Board, m: &Move) -> i32 {
+        let mut priority = 0;
+        if b.at(m.dst as usize) != Piece::ABSENT {
+            priority += 1000;
+        }
+        if m.promote {
+            priority += 100;
+        }
+        priority += (rand::thread_rng().next_u32() / 10) as i32 % 10;
+        priority
     }
 
     fn invalid_move() -> Move {

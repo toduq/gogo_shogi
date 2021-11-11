@@ -61,7 +61,12 @@ impl Board {
             // move in board
             self.squares[m.src as usize] = Piece::ABSENT;
         }
-        self.squares[m.dst as usize] = m.piece;
+        if m.promote {
+            self.squares[m.dst as usize] = Piece(m.piece.0 + 8);
+        } else {
+            self.squares[m.dst as usize] = m.piece;
+        }
+
         self.turn = self.turn.next();
 
         if took != Piece::ABSENT {

@@ -38,11 +38,32 @@ static PIECE_MOVES: Lazy<HashMap<u8, Vec<Vec<(i8, i8)>>>> = Lazy::new(|| {
         vec![(1, -1), (2, -2), (3, -3), (4, -4)],
         vec![(1, 1), (2, 2), (3, 3), (4, 4)],
     ];
+    let bishop_p = vec![
+        vec![(-1, -1), (-2, -2), (-3, -3), (-4, -4)],
+        vec![(-1, 1), (-2, 2), (-3, 3), (-4, 4)],
+        vec![(1, -1), (2, -2), (3, -3), (4, -4)],
+        vec![(1, 1), (2, 2), (3, 3), (4, 4)],
+        vec![(-1, 0)],
+        vec![(0, -1)],
+        vec![(0, 1)],
+        vec![(1, 0)],
+        vec![(1, 1)],
+    ];
     let rook = vec![
         vec![(-1, 0), (-2, 0), (-3, 0), (-4, 0)],
         vec![(0, -1), (0, -2), (0, -3), (0, -4)],
         vec![(0, 1), (0, 2), (0, 3), (0, 4)],
         vec![(1, 0), (2, 0), (3, 0), (4, 0)],
+    ];
+    let rook_p = vec![
+        vec![(-1, 0), (-2, 0), (-3, 0), (-4, 0)],
+        vec![(0, -1), (0, -2), (0, -3), (0, -4)],
+        vec![(0, 1), (0, 2), (0, 3), (0, 4)],
+        vec![(1, 0), (2, 0), (3, 0), (4, 0)],
+        vec![(-1, -1)],
+        vec![(-1, 1)],
+        vec![(1, -1)],
+        vec![(1, 1)],
     ];
     let pawn = vec![vec![(-1, 0)]];
 
@@ -54,12 +75,12 @@ static PIECE_MOVES: Lazy<HashMap<u8, Vec<Vec<(i8, i8)>>>> = Lazy::new(|| {
             Piece::B_KING => king.clone(),
             Piece::B_GOLD => gold.clone(),
             Piece::B_SILVER => silver.clone(),
-            Piece::B_BISHOP => bishop.clone(), // FIXME
-            Piece::B_ROOK => rook.clone(),     // FIXME
+            Piece::B_BISHOP => bishop.clone(),
+            Piece::B_ROOK => rook.clone(),
             Piece::B_PAWN => pawn.clone(),
             Piece::B_SILVER_P => gold.clone(),
-            Piece::B_BISHOP_P => bishop.clone(), // FIXME
-            Piece::B_ROOK_P => rook.clone(),     // FIXME
+            Piece::B_BISHOP_P => bishop_p.clone(),
+            Piece::B_ROOK_P => rook_p.clone(),
             Piece::B_PAWN_P => gold.clone(),
             _ => vec![],
         };
@@ -83,18 +104,25 @@ static PIECE_MOVES_WITH_POSITION: Lazy<HashMap<(u8, usize), Vec<Vec<Move>>>> = L
         let x = (pos % 5) as i8;
         for (piece, moves) in PIECE_MOVES.iter() {
             let v = moves
-                .clone()
                 .iter()
                 .map(|vs| {
                     vs.iter()
                         .filter(|(dy, dx)| y + dy >= 0 && y + dy <= 4 && x + dx >= 0 && x + dx <= 4)
-                        .map(|(dy, dx)| {
-                            Move::new(
-                                &Piece(*piece),
-                                (y * 5 + x) as u8,
-                                ((y + dy) * 5 + x + dx) as u8,
-                                false,
-                            )
+                        .flat_map(|(dy, dx)| {
+                            let p = Piece(*piece);
+                            let src = (y * 5 + x) as u8;
+                            let dst = ((y + dy) * 5 + x + dx) as u8;
+                            if ((y + dy == 0 && piece % 2 == 0) || (y + dy == 4 && piece % 2 == 1))
+                                && (6 <= *piece && *piece <= 13)
+                            {
+                                // with promotion
+                                vec![
+                                    Move::new(&p, src, dst, true),
+                                    Move::new(&p, src, dst, false),
+                                ]
+                            } else {
+                                vec![Move::new(&p, src, dst, false)]
+                            }
                         })
                         .collect()
                 })

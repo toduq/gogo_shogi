@@ -33,10 +33,16 @@ pub struct SearchResult {
 }
 
 impl Searcher {
+    const SEARCH_DEPTH: u8 = 3;
     const SCORE_LIMIT: i32 = 100_000_000;
 
     pub fn find_best_move(b: &Board) -> Option<SearchResult> {
-        let result = Searcher::rec_search(b, 4);
+        let result = Searcher::rec_search(
+            b,
+            Searcher::SEARCH_DEPTH,
+            -Searcher::SCORE_LIMIT,
+            Searcher::SCORE_LIMIT,
+        );
         if result.m == Searcher::invalid_move() {
             None
         } else {
@@ -45,25 +51,23 @@ impl Searcher {
     }
 
     // if rec_search finds `score > beta`, the result will be discarded by alpha-beta.
-    fn rec_search(b: &Board, depth: u8) -> SearchResult {
-        if depth == 0 {
-            let score = Evaluator::evaluate(&b) * -1;
-            return SearchResult {
-                m: Searcher::invalid_move(),
-                score: score,
-                searched: 1,
-            };
-        }
-
+    fn rec_search(b: &Board, depth: u8, alpha: i32, beta: i32) -> SearchResult {
         let mut moves = MoveGen::valid_moves(b);
         if moves.is_empty() {
             return Searcher::evaluate_game_end(b, depth);
+        }
+        if depth == 0 {
+            return SearchResult {
+                m: Searcher::invalid_move(),
+                score: Evaluator::evaluate(&b),
+                searched: 1,
+            };
         }
 
         moves.shuffle(&mut rand::thread_rng());
         let mut best: SearchResult = SearchResult {
             m: Searcher::invalid_move(),
-            score: Searcher::SCORE_LIMIT * -1,
+            score: alpha,
             searched: 0,
         };
 
@@ -72,11 +76,15 @@ impl Searcher {
             next_board.copy_from(b);
             next_board.put_move(&m);
 
-            let result = Searcher::rec_search(&next_board, depth - 1);
+            let result = Searcher::rec_search(&next_board, depth - 1, -beta, -best.score);
             let score = result.score * -1;
             if score > best.score {
                 best.m = m;
                 best.score = score;
+            }
+            if score > beta {
+                // beta cut
+                return best;
             }
             best.searched += result.searched;
         }
@@ -157,4 +165,50 @@ mod tests {
         let result = Searcher::find_best_move(&b);
         assert_eq!(result.unwrap().m, Move::new(&Piece::W_KING, 0, 5, false));
     }
+
+    #[test]
+    fn checkmate_with_1_moves() {
+        // https://www.aonoshogi.com/1tetsume/000/006.php
+        let mut b = Board::empty();
+        // for hands
+        b.put_move(&Move::new(&Piece::W_SILVER, 109, 11, false));
+        // put pieces
+        b.put_move(&Move::new(&Piece::W_KING, 109, 1, false));
+        b.put_move(&Move::new(&Piece::B_GOLD, 100, 12, false));
+        b.put_move(&Move::new(&Piece::B_GOLD, 12, 11, false));
+        // dummy
+        b.put_move(&Move::new(&Piece::B_KING, 109, 23, false));
+        b.put_move(&Move::new(&Piece::B_KING, 23, 24, false));
+        println!("{}", b);
+
+        let result = Searcher::find_best_move(&b);
+        assert_eq!(
+            result.unwrap().m,
+            Move::new(&Piece::B_SILVER, 100, 6, false)
+        );
+    }
+
+    // #[test]
+    // fn checkmate_with_3_moves() {
+    //     // https://www.aonoshogi.com/3tetsume/000/001.php
+    //     let mut b = Board::empty();
+    //     // for hands
+    //     b.put_move(&Move::new(&Piece::W_GOLD, 109, 9, false));
+    //     b.put_move(&Move::new(&Piece::W_SILVER, 109, 8, false));
+    //     // put pieces
+    //     b.put_move(&Move::new(&Piece::W_ROOK, 100, 0, false));
+    //     b.put_move(&Move::new(&Piece::W_KING, 100, 1, false));
+    //     b.put_move(&Move::new(&Piece::B_PAWN_P, 100, 10, false));
+    //     b.put_move(&Move::new(&Piece::B_PAWN_P, 10, 9, false));
+    //     b.put_move(&Move::new(&Piece::B_PAWN_P, 9, 8, false));
+    //     // dummy
+    //     b.put_move(&Move::new(&Piece::B_KING, 109, 24, false));
+    //     println!("{}", b);
+
+    //     let result = Searcher::find_best_move(&b);
+    //     assert_eq!(
+    //         result.unwrap().m,
+    //         Move::new(&Piece::B_SILVER, 101, 7, false)
+    //     );
+    // }
 }

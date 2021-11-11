@@ -6,8 +6,7 @@ use logic::*;
 use std::time::SystemTime;
 
 fn main() {
-    // let guard = pprof::ProfilerGuard::new(100).unwrap();
-    println!("Board size : {}", std::mem::size_of::<Board>());
+    // println!("Board size : {}", std::mem::size_of::<Board>());
     let mut b = Board::init();
     println!("{}", b);
 
@@ -29,9 +28,10 @@ fn main() {
         );
         evaluated += best_move.searched;
         println!("{}", b);
+        println!("==========================");
 
         if i == 299 {
-            println!("Too long game.");
+            println!("Abort. Too long game.");
             break;
         }
     }
@@ -43,8 +43,4 @@ fn main() {
         ms,
         (evaluated as u128) * 1000 / ms
     );
-    // if let Ok(report) = guard.report().build() {
-    //     let file = std::fs::File::create("flamegraph.svg").unwrap();
-    //     report.flamegraph(file).unwrap();
-    // };
 }

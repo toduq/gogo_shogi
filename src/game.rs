@@ -32,6 +32,15 @@ impl Board {
         }
     }
 
+    #[cfg(test)]
+    pub fn empty() -> Board {
+        Board {
+            squares: [Piece::ABSENT; 25],
+            turn: Turn::Black,
+            hands: [Piece::ABSENT; 10],
+        }
+    }
+
     pub fn copy_from(&mut self, from: &Board) {
         self.squares = from.squares;
         self.turn = from.turn;
@@ -108,7 +117,7 @@ impl std::fmt::Display for Board {
                 buf.push_str(&format!("{} ", h.to_str()));
             }
         }
-        write!(f, "{}\n", buf)
+        write!(f, "{}", buf)
     }
 }
 

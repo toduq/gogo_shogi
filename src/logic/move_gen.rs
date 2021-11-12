@@ -1,8 +1,101 @@
-use super::super::game::*;
+use super::*;
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 
-pub struct MoveGen {}
+pub fn all_valid_moves(board: &Board) -> Vec<Move> {
+    valid_moves(board, true)
+}
+
+pub fn moves_only(board: &Board) -> Vec<Move> {
+    valid_moves(board, false)
+}
+
+pub fn moves_of_check(board: &Board) -> Vec<Move> {
+    let mut next_board = board.clone();
+    valid_moves(board, true)
+        .iter()
+        .filter(|m| {
+            next_board.copy_from(board);
+            next_board.put_move(m);
+            next_board.flip_turn();
+            is_check_or_win(&next_board)
+        })
+        .map(|m| *m)
+        .collect()
+}
+
+fn valid_moves(board: &Board, include_hands: bool) -> Vec<Move> {
+    if is_king_absent(board) {
+        return vec![]; // game is finished
+    }
+
+    let my_turn = board.turn;
+    let mut moves = Vec::new();
+
+    // move piece
+    for (pos, piece) in board.squares.iter().enumerate() {
+        if *piece == Piece::ABSENT || piece.turn() != my_turn {
+            continue;
+        }
+        for ms in &PIECE_MOVES_WITH_POSITION[&(piece.0, pos)] {
+            for m in ms {
+                let dst_piece = board.at(m.dst as usize);
+                if dst_piece.is_absent() {
+                    // empty. can go through
+                    moves.push(*m);
+                } else if dst_piece.turn() != my_turn {
+                    // occupied by opponent. have to stop.
+                    moves.push(*m);
+                    break;
+                } else {
+                    // occupied by same color. can't enter.
+                    break;
+                }
+            }
+        }
+    }
+
+    if include_hands {
+        // piece from hands
+        for (pos, piece) in board.hands.iter().enumerate() {
+            if *piece == Piece::ABSENT || piece.turn() != my_turn {
+                continue;
+            }
+            for dst in 0..25 {
+                if board.at(dst) != Piece::ABSENT {
+                    continue;
+                }
+                moves.push(Move::new(piece, (100 + pos) as u8, dst as u8, false))
+            }
+        }
+    }
+    moves
+}
+
+fn is_king_absent(b: &Board) -> bool {
+    let king_count = b
+        .squares
+        .iter()
+        .map(|p| p.of_turn(Turn::Black))
+        .filter(|p| *p == Piece::B_KING)
+        .count();
+    return king_count != 2;
+}
+
+pub fn is_check_or_win(b: &Board) -> bool {
+    let opp_king = Piece::B_KING.of_turn(b.turn.next());
+    let opp_king_pos = b.squares.iter().find(|p| **p == opp_king);
+    if opp_king_pos.is_none() {
+        return true; // wins
+    }
+    let opp_king_pos = opp_king_pos.unwrap();
+    valid_moves(b, false)
+        .iter()
+        .find(|m| m.dst == opp_king_pos.0)
+        .is_some()
+}
+
+// The followings are cache
 
 static PIECE_MOVES: Lazy<HashMap<u8, Vec<Vec<(i8, i8)>>>> = Lazy::new(|| {
     let mut map = HashMap::new();
@@ -132,58 +225,3 @@ static PIECE_MOVES_WITH_POSITION: Lazy<HashMap<(u8, usize), Vec<Vec<Move>>>> = L
     }
     map
 });
-
-impl MoveGen {
-    pub fn valid_moves(board: &Board) -> Vec<Move> {
-        let king_count = board
-            .squares
-            .iter()
-            .map(|p| p.of_turn(Turn::Black))
-            .filter(|p| *p == Piece::B_KING)
-            .count();
-        if king_count != 2 {
-            return vec![]; // game is finished
-        }
-
-        let my_turn = board.turn;
-        let mut moves = Vec::new();
-
-        // move piece
-        for (pos, piece) in board.squares.iter().enumerate() {
-            if *piece == Piece::ABSENT || piece.turn() != my_turn {
-                continue;
-            }
-            for ms in &PIECE_MOVES_WITH_POSITION[&(piece.0, pos)] {
-                for m in ms {
-                    let dst_piece = board.at(m.dst as usize);
-                    if dst_piece.is_absent() {
-                        // empty. can go through
-                        moves.push(*m);
-                    } else if dst_piece.turn() != my_turn {
-                        // occupied by opponent. have to stop.
-                        moves.push(*m);
-                        break;
-                    } else {
-                        // occupied by same color. can't enter.
-                        break;
-                    }
-                }
-            }
-        }
-
-        // piece from hands
-        for (pos, piece) in board.hands.iter().enumerate() {
-            if *piece == Piece::ABSENT || piece.turn() != my_turn {
-                continue;
-            }
-            for dst in 0..25 {
-                if board.at(dst) != Piece::ABSENT {
-                    continue;
-                }
-                moves.push(Move::new(piece, (100 + pos) as u8, dst as u8, false))
-            }
-        }
-
-        moves
-    }
-}

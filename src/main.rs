@@ -12,7 +12,7 @@ fn main() {
     let mut evaluated = 0;
     let start = SystemTime::now();
     for i in 0..1000 {
-        let best_move = Searcher::find_best_move(&b);
+        let best_move = searcher::find_best_move(&b);
         if let None = best_move {
             println!("Game has finished in {} moves", i);
             break;

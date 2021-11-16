@@ -1,4 +1,4 @@
-use super::{Piece, Turn, Move};
+use super::{Move, Piece, Turn};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Board {
@@ -9,31 +9,31 @@ pub struct Board {
 
 impl Board {
     pub fn init() -> Board {
-        let mut s = [Piece::ABSENT; 25];
-        s[0] = Piece::W_ROOK;
-        s[1] = Piece::W_BISHOP;
-        s[2] = Piece::W_SILVER;
-        s[3] = Piece::W_GOLD;
-        s[4] = Piece::W_KING;
-        s[9] = Piece::W_PAWN;
+        let mut s = [Piece::Absent; 25];
+        s[0] = Piece::WRook;
+        s[1] = Piece::WBishop;
+        s[2] = Piece::WSilver;
+        s[3] = Piece::WGold;
+        s[4] = Piece::WKing;
+        s[9] = Piece::WPawn;
         for i in 0..=9 {
-            if s[i] != Piece::ABSENT {
+            if !s[i].is_absent() {
                 s[24 - i] = s[i].flip();
             }
         }
         Board {
             squares: s,
             turn: Turn::Black,
-            hands: [Piece::ABSENT; 10],
+            hands: [Piece::Absent; 10],
         }
     }
 
     #[cfg(test)]
     pub fn empty() -> Board {
         Board {
-            squares: [Piece::ABSENT; 25],
+            squares: [Piece::Absent; 25],
             turn: Turn::Black,
-            hands: [Piece::ABSENT; 10],
+            hands: [Piece::Absent; 10],
         }
     }
 
@@ -52,24 +52,24 @@ impl Board {
 
         if m.src >= 100 {
             // from hands
-            self.hands[(m.src - 100) as usize] = Piece::ABSENT;
+            self.hands[(m.src - 100) as usize] = Piece::Absent;
         } else {
             // move in board
-            self.squares[m.src as usize] = Piece::ABSENT;
+            self.squares[m.src as usize] = Piece::Absent;
         }
         if m.promote {
-            self.squares[m.dst as usize] = Piece(m.piece.0 + 8);
+            self.squares[m.dst as usize] = Piece::from_u8(m.piece as u8 + 8);
         } else {
             self.squares[m.dst as usize] = m.piece;
         }
 
         self.turn = self.turn.next();
 
-        if took != Piece::ABSENT {
+        if took != Piece::Absent {
             for i in 0..10 {
-                if self.hands[i] == Piece::ABSENT {
-                    self.hands[i] = if took.0 >= 14 {
-                        Piece(took.flip().0 - 8)
+                if self.hands[i] == Piece::Absent {
+                    self.hands[i] = if took.as_u8() >= 14 {
+                        Piece::from_u8(took.flip() as u8 - 8)
                     } else {
                         took.flip()
                     };
@@ -88,10 +88,10 @@ impl Board {
         let mut w_king = false;
         for p in &self.squares {
             match *p {
-                Piece::B_KING => {
+                Piece::BKing => {
                     b_king = true;
                 }
-                Piece::W_KING => {
+                Piece::WKing => {
                     w_king = true;
                 }
                 _ => {}
@@ -122,7 +122,7 @@ impl std::fmt::Display for Board {
         }
         buf.push_str("Hands: ");
         for h in self.hands {
-            if h != Piece::ABSENT {
+            if h != Piece::Absent {
                 buf.push_str(&format!("{} ", h.to_str()));
             }
         }

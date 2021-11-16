@@ -9,10 +9,10 @@ const PIECE_VALUE: [i32; 22] = [
 pub fn evaluate(b: &Board) -> i32 {
     let mut sum = 0;
     for p in b.squares {
-        sum += evaluator::PIECE_VALUE[p.0 as usize];
+        sum += evaluator::PIECE_VALUE[p as usize];
     }
     for p in b.hands {
-        sum += evaluator::PIECE_VALUE[p.0 as usize] * 9 / 10;
+        sum += evaluator::PIECE_VALUE[p as usize] * 9 / 10;
     }
     let move_dst: HashSet<u8> = move_gen::moves_only(b).iter().map(|m| m.src).collect();
     sum += move_dst.len() as i32;

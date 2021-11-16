@@ -34,10 +34,10 @@ fn valid_moves(board: &Board, include_hands: bool) -> Vec<Move> {
 
     // move piece
     for (pos, piece) in board.squares.iter().enumerate() {
-        if *piece == Piece::ABSENT || piece.turn() != my_turn {
+        if *piece == Piece::Absent || piece.turn() != my_turn {
             continue;
         }
-        for ms in &PIECE_MOVES_WITH_POSITION[&(piece.0, pos)] {
+        for ms in &PIECE_MOVES_WITH_POSITION[&(*piece as u8, pos)] {
             for m in ms {
                 let dst_piece = board.at(m.dst as usize);
                 if dst_piece.is_absent() {
@@ -58,11 +58,11 @@ fn valid_moves(board: &Board, include_hands: bool) -> Vec<Move> {
     if include_hands {
         // piece from hands
         for (pos, piece) in board.hands.iter().enumerate() {
-            if *piece == Piece::ABSENT || piece.turn() != my_turn {
+            if *piece == Piece::Absent || piece.turn() != my_turn {
                 continue;
             }
             for dst in 0..25 {
-                if board.at(dst) != Piece::ABSENT {
+                if board.at(dst) != Piece::Absent {
                     continue;
                 }
                 moves.push(Move::new(piece, (100 + pos) as u8, dst as u8, false))
@@ -77,13 +77,13 @@ fn is_king_absent(b: &Board) -> bool {
         .squares
         .iter()
         .map(|p| p.of_turn(Turn::Black))
-        .filter(|p| *p == Piece::B_KING)
+        .filter(|p| *p == Piece::BKing)
         .count();
     return king_count != 2;
 }
 
 pub fn is_check_or_win(b: &Board) -> bool {
-    let opp_king = Piece::B_KING.of_turn(b.turn.next());
+    let opp_king = Piece::BKing.of_turn(b.turn.next());
     let opp_king_pos = b.squares.iter().find(|p| **p == opp_king);
     if opp_king_pos.is_none() {
         return true; // wins
@@ -91,7 +91,7 @@ pub fn is_check_or_win(b: &Board) -> bool {
     let opp_king_pos = opp_king_pos.unwrap();
     valid_moves(b, false)
         .iter()
-        .find(|m| m.dst == opp_king_pos.0)
+        .find(|m| m.dst == opp_king_pos.as_u8())
         .is_some()
 }
 
@@ -161,20 +161,20 @@ static PIECE_MOVES: Lazy<HashMap<u8, Vec<Vec<(i8, i8)>>>> = Lazy::new(|| {
     let pawn = vec![vec![(-1, 0)]];
 
     for i in 2..=21 {
-        let piece = Piece(i);
+        let piece = Piece::from_u8(i);
         let piece_of_black = piece.of_turn(Turn::Black);
 
         let mut v = match piece_of_black {
-            Piece::B_KING => king.clone(),
-            Piece::B_GOLD => gold.clone(),
-            Piece::B_SILVER => silver.clone(),
-            Piece::B_BISHOP => bishop.clone(),
-            Piece::B_ROOK => rook.clone(),
-            Piece::B_PAWN => pawn.clone(),
-            Piece::B_SILVER_P => gold.clone(),
-            Piece::B_BISHOP_P => bishop_p.clone(),
-            Piece::B_ROOK_P => rook_p.clone(),
-            Piece::B_PAWN_P => gold.clone(),
+            Piece::BKing => king.clone(),
+            Piece::BGold => gold.clone(),
+            Piece::BSilver => silver.clone(),
+            Piece::BBishop => bishop.clone(),
+            Piece::BRook => rook.clone(),
+            Piece::BPawn => pawn.clone(),
+            Piece::BSilverP => gold.clone(),
+            Piece::BBishopP => bishop_p.clone(),
+            Piece::BRookP => rook_p.clone(),
+            Piece::BPawnP => gold.clone(),
             _ => vec![],
         };
 
@@ -185,7 +185,7 @@ static PIECE_MOVES: Lazy<HashMap<u8, Vec<Vec<(i8, i8)>>>> = Lazy::new(|| {
                 .collect();
         }
 
-        map.insert(piece.0, v);
+        map.insert(piece.as_u8(), v);
     }
     map
 });
@@ -202,7 +202,7 @@ static PIECE_MOVES_WITH_POSITION: Lazy<HashMap<(u8, usize), Vec<Vec<Move>>>> = L
                     vs.iter()
                         .filter(|(dy, dx)| y + dy >= 0 && y + dy <= 4 && x + dx >= 0 && x + dx <= 4)
                         .flat_map(|(dy, dx)| {
-                            let p = Piece(*piece);
+                            let p = Piece::from_u8(*piece);
                             let src = (y * 5 + x) as u8;
                             let dst = ((y + dy) * 5 + x + dx) as u8;
                             if ((y + dy == 0 && piece % 2 == 0) || (y + dy == 4 && piece % 2 == 1))

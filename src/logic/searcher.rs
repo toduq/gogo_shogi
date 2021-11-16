@@ -85,9 +85,9 @@ fn reorder_moves(b: &Board, moves: &Vec<Move>) -> Vec<Move> {
 fn move_priority(b: &Board, m: &Move) -> i32 {
     let mut priority = 0;
     let dst_piece = b.at(m.dst as usize);
-    if dst_piece == Piece::B_KING || dst_piece == Piece::W_KING {
+    if dst_piece == Piece::BKing || dst_piece == Piece::WKing {
         priority += 10000;
-    } else if dst_piece != Piece::ABSENT {
+    } else if dst_piece != Piece::Absent {
         priority += 1000;
     }
     if m.promote {
@@ -98,7 +98,7 @@ fn move_priority(b: &Board, m: &Move) -> i32 {
 }
 
 fn invalid_move() -> Move {
-    Move::new(&Piece::ABSENT, 0, 0, false)
+    Move::new(&Piece::Absent, 0, 0, false)
 }
 
 #[cfg(test)]
@@ -108,54 +108,54 @@ mod tests {
     #[test]
     fn takes_king_immediately() {
         let mut b = Board::init();
-        b.put_move(&Move::new(&Piece::B_KING, 20, 14, false));
+        b.put_move(&Move::new(&Piece::BKing, 20, 14, false));
 
         println!("{}", b);
         let result = find_best_move(&b);
-        assert_eq!(result.unwrap().m, Move::new(&Piece::W_PAWN, 9, 14, false));
+        assert_eq!(result.unwrap().m, Move::new(&Piece::WPawn, 9, 14, false));
     }
 
     #[test]
     fn takes_king_immediately_even_our_when_king_will_taken_next_turn() {
         let mut b = Board::init();
-        b.put_move(&Move::new(&Piece::B_KING, 20, 9, false));
+        b.put_move(&Move::new(&Piece::BKing, 20, 9, false));
         b.flip_turn();
 
         println!("{}", b);
         let result = find_best_move(&b);
-        assert_eq!(result.unwrap().m, Move::new(&Piece::B_KING, 9, 4, false));
+        assert_eq!(result.unwrap().m, Move::new(&Piece::BKing, 9, 4, false));
     }
 
     #[test]
     fn avoid_checkmate() {
         let mut b = Board::empty();
-        b.put_move(&Move::new(&Piece::W_KING, 100, 1, false));
-        b.put_move(&Move::new(&Piece::B_GOLD, 100, 11, false));
-        b.put_move(&Move::new(&Piece::B_GOLD, 100, 8, false));
+        b.put_move(&Move::new(&Piece::WKing, 100, 1, false));
+        b.put_move(&Move::new(&Piece::BGold, 100, 11, false));
+        b.put_move(&Move::new(&Piece::BGold, 100, 8, false));
         // dummy
-        b.put_move(&Move::new(&Piece::B_KING, 100, 24, false));
+        b.put_move(&Move::new(&Piece::BKing, 100, 24, false));
         b.flip_turn();
 
         println!("{}", b);
         let result = find_best_move(&b);
-        assert_eq!(result.unwrap().m, Move::new(&Piece::W_KING, 1, 0, false));
+        assert_eq!(result.unwrap().m, Move::new(&Piece::WKing, 1, 0, false));
     }
 
     #[test]
     fn avoid_checkmate_by_taking() {
         let mut b = Board::empty();
-        b.put_move(&Move::new(&Piece::W_KING, 100, 0, false));
-        b.put_move(&Move::new(&Piece::B_ROOK, 100, 4, false));
-        b.put_move(&Move::new(&Piece::B_ROOK, 100, 9, false));
-        b.put_move(&Move::new(&Piece::B_SILVER, 100, 5, false));
-        b.put_move(&Move::new(&Piece::B_SILVER, 100, 6, false));
+        b.put_move(&Move::new(&Piece::WKing, 100, 0, false));
+        b.put_move(&Move::new(&Piece::BRook, 100, 4, false));
+        b.put_move(&Move::new(&Piece::BRook, 100, 9, false));
+        b.put_move(&Move::new(&Piece::BSilver, 100, 5, false));
+        b.put_move(&Move::new(&Piece::BSilver, 100, 6, false));
         // dummy
-        b.put_move(&Move::new(&Piece::B_KING, 100, 24, false));
+        b.put_move(&Move::new(&Piece::BKing, 100, 24, false));
         b.flip_turn();
 
         println!("{}", b);
         let result = find_best_move(&b);
-        assert_eq!(result.unwrap().m, Move::new(&Piece::W_KING, 0, 5, false));
+        assert_eq!(result.unwrap().m, Move::new(&Piece::WKing, 0, 5, false));
     }
 
     #[test]
@@ -163,21 +163,18 @@ mod tests {
         // https://www.aonoshogi.com/1tetsume/000/006.php
         let mut b = Board::empty();
         // for hands
-        b.put_move(&Move::new(&Piece::W_SILVER, 109, 11, false));
+        b.put_move(&Move::new(&Piece::WSilver, 109, 11, false));
         // put pieces
-        b.put_move(&Move::new(&Piece::W_KING, 109, 1, false));
-        b.put_move(&Move::new(&Piece::B_GOLD, 100, 12, false));
-        b.put_move(&Move::new(&Piece::B_GOLD, 12, 11, false));
+        b.put_move(&Move::new(&Piece::WKing, 109, 1, false));
+        b.put_move(&Move::new(&Piece::BGold, 100, 12, false));
+        b.put_move(&Move::new(&Piece::BGold, 12, 11, false));
         // dummy
-        b.put_move(&Move::new(&Piece::B_KING, 109, 24, false));
+        b.put_move(&Move::new(&Piece::BKing, 109, 24, false));
         b.flip_turn();
         println!("{}", b);
 
         let result = find_best_move(&b);
-        assert_eq!(
-            result.unwrap().m,
-            Move::new(&Piece::B_SILVER, 100, 6, false),
-        );
+        assert_eq!(result.unwrap().m, Move::new(&Piece::BSilver, 100, 6, false),);
     }
 
     // #[test]

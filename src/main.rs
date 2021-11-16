@@ -14,7 +14,7 @@ fn main() {
     let start = SystemTime::now();
     for i in 0..1000 {
         let best_move = searcher::find_best_move(&b);
-        if let None = best_move {
+        if best_move.is_none() {
             println!("Game has finished in {} moves", i);
             break;
         }

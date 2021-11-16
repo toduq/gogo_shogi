@@ -28,7 +28,7 @@ fn rec_search(b: &Board, depth: u8, alpha: i32, beta: i32) -> SearchResult {
     if depth == 0 {
         return SearchResult {
             m: invalid_move(),
-            score: evaluator::evaluate(&b),
+            score: evaluator::evaluate(b),
             searched: 1,
         };
     }
@@ -47,7 +47,7 @@ fn rec_search(b: &Board, depth: u8, alpha: i32, beta: i32) -> SearchResult {
         next_board.put_move(&m);
 
         let result = rec_search(&next_board, depth - 1, -beta, -best.score);
-        let score = result.score * -1;
+        let score = -result.score;
         if score > best.score {
             best.m = m;
             best.score = score;
@@ -70,14 +70,14 @@ fn evaluate_game_end(b: &Board, depth: u8) -> SearchResult {
     SearchResult {
         m: invalid_move(),
         // shorter checkmate path should be treated as better.
-        score: SCORE_LIMIT * -1 - (depth as i32) + 100,
+        score: -SCORE_LIMIT - (depth as i32) + 100,
         searched: 1,
     }
 }
 
 // re-order moves for alpha-beta cut
-fn reorder_moves(b: &Board, moves: &Vec<Move>) -> Vec<Move> {
-    let mut tupls: Vec<(Move, i32)> = moves.iter().map(|m| (*m, move_priority(b, &m))).collect();
+fn reorder_moves(b: &Board, moves: &[Move]) -> Vec<Move> {
+    let mut tupls: Vec<(Move, i32)> = moves.iter().map(|m| (*m, move_priority(b, m))).collect();
     tupls.sort_by(|a, b| b.1.cmp(&a.1));
     tupls.iter().map(|t| t.0).collect()
 }

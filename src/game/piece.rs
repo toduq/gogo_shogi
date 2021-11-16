@@ -104,9 +104,7 @@ const REVERSE_INDEX: [Piece; 22] = [
 ];
 
 static BOARD_REPR: Lazy<Vec<String>> = Lazy::new(|| {
-    let mut v: Vec<String> = Vec::new();
-    v.push("  ".to_string());
-    v.push("  ".to_string());
+    let mut v: Vec<String> = vec!["  ".to_string(), "  ".to_string()];
     for s in ["王", "金", "銀", "角", "飛", "歩", "全", "馬", "龍", "と"] {
         v.push(format!("\x1b[32m{}\x1b[m", s));
         v.push(format!("\x1b[33m{}\x1b[m", s));

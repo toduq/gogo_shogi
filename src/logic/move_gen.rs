@@ -10,19 +10,19 @@ pub fn moves_only(board: &Board) -> Vec<Move> {
     valid_moves(board, false)
 }
 
-pub fn moves_of_check(board: &Board) -> Vec<Move> {
-    let mut next_board = board.clone();
-    valid_moves(board, true)
-        .iter()
-        .filter(|m| {
-            next_board.copy_from(board);
-            next_board.put_move(m);
-            next_board.flip_turn();
-            is_check_or_win(&next_board)
-        })
-        .map(|m| *m)
-        .collect()
-}
+// pub fn moves_of_check(board: &Board) -> Vec<Move> {
+//     let mut next_board = board.clone();
+//     valid_moves(board, true)
+//         .iter()
+//         .filter(|m| {
+//             next_board.copy_from(board);
+//             next_board.put_move(m);
+//             next_board.flip_turn();
+//             is_check_or_win(&next_board)
+//         })
+//         .map(|m| *m)
+//         .collect()
+// }
 
 fn valid_moves(board: &Board, include_hands: bool) -> Vec<Move> {
     if is_king_absent(board) {
@@ -79,24 +79,24 @@ fn is_king_absent(b: &Board) -> bool {
         .map(|p| p.of_turn(Turn::Black))
         .filter(|p| *p == Piece::BKing)
         .count();
-    return king_count != 2;
+    king_count != 2
 }
 
-pub fn is_check_or_win(b: &Board) -> bool {
-    let opp_king = Piece::BKing.of_turn(b.turn.next());
-    let opp_king_pos = b.squares.iter().find(|p| **p == opp_king);
-    if opp_king_pos.is_none() {
-        return true; // wins
-    }
-    let opp_king_pos = opp_king_pos.unwrap();
-    valid_moves(b, false)
-        .iter()
-        .find(|m| m.dst == opp_king_pos.as_u8())
-        .is_some()
-}
+// pub fn is_check_or_win(b: &Board) -> bool {
+//     let opp_king = Piece::BKing.of_turn(b.turn.next());
+//     let opp_king_pos = b.squares.iter().find(|p| **p == opp_king);
+//     if opp_king_pos.is_none() {
+//         return true; // wins
+//     }
+//     let opp_king_pos = opp_king_pos.unwrap();
+//     valid_moves(b, false)
+//         .iter()
+//         .any(|m| m.dst == opp_king_pos.as_u8())
+// }
 
 // The followings are cache
 
+#[allow(clippy::type_complexity)]
 static PIECE_MOVES: Lazy<HashMap<u8, Vec<Vec<(i8, i8)>>>> = Lazy::new(|| {
     let mut map = HashMap::new();
 
@@ -181,7 +181,7 @@ static PIECE_MOVES: Lazy<HashMap<u8, Vec<Vec<(i8, i8)>>>> = Lazy::new(|| {
         if piece.turn() == Turn::White {
             v = v
                 .iter()
-                .map(|v2| v2.iter().map(|l| (l.0 * -1, l.1)).collect())
+                .map(|v2| v2.iter().map(|l| (-l.0, l.1)).collect())
                 .collect();
         }
 
@@ -190,6 +190,7 @@ static PIECE_MOVES: Lazy<HashMap<u8, Vec<Vec<(i8, i8)>>>> = Lazy::new(|| {
     map
 });
 
+#[allow(clippy::type_complexity)]
 static PIECE_MOVES_WITH_POSITION: Lazy<HashMap<(u8, usize), Vec<Vec<Move>>>> = Lazy::new(|| {
     let mut map = HashMap::new();
     for pos in 0..=24 {

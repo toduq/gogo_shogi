@@ -16,5 +16,5 @@ pub fn evaluate(b: &Board) -> i32 {
     }
     let move_dst: HashSet<u8> = move_gen::moves_only(b).iter().map(|m| m.src).collect();
     sum += move_dst.len() as i32;
-    return sum * (b.turn.val() as i32);
+    sum * (b.turn.val() as i32)
 }

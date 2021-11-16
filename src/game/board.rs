@@ -1,6 +1,6 @@
 use super::{Move, Piece, Turn};
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Board {
     pub squares: [Piece; 25],
     pub turn: Turn,
@@ -113,7 +113,7 @@ impl std::fmt::Display for Board {
             buf.push_str(&format!(
                 "{} |{} {} {} {} {}\n",
                 y,
-                self.at(y * 5 + 0).to_str(),
+                self.at(y * 5).to_str(),
                 self.at(y * 5 + 1).to_str(),
                 self.at(y * 5 + 2).to_str(),
                 self.at(y * 5 + 3).to_str(),

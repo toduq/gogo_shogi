@@ -79,6 +79,7 @@ impl Board {
         }
     }
 
+    #[allow(unused)]
     pub fn flip_turn(&mut self) {
         self.turn = self.turn.next();
     }
@@ -102,6 +103,38 @@ impl Board {
             (true, false) => (true, Turn::Black),
             _ => (false, Turn::Black),
         }
+    }
+
+    // There are 23 absent squares and it uses 23 bits.
+    // There are 12 occupied squares and it uses 12*6=72bits.
+    // 1(turn) + 23(empty) + 72(occupied) = 96bits.
+    #[allow(unused)]
+    pub fn u128_repr(&self) -> u128 {
+        let mut hash = 0u128;
+        hash |= self.turn as u128;
+        for p in self.squares {
+            if p.is_absent() {
+                // absent is represented by 0
+                hash <<= 1;
+            } else {
+                // piece is reprersented by 1|piece
+                hash <<= 6;
+                hash |= 1 << 5;
+                hash |= p as u128;
+            }
+        }
+        let mut hands_sorted = self.hands;
+        hands_sorted.sort();
+        for p in hands_sorted {
+            if p.is_absent() {
+                hash <<= 1;
+            } else {
+                hash <<= 6;
+                hash |= 1 << 5;
+                hash |= p as u128;
+            }
+        }
+        hash
     }
 }
 

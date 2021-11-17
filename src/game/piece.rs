@@ -2,7 +2,7 @@ use super::Turn;
 use once_cell::sync::Lazy;
 
 #[repr(u8)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Piece {
     Absent = 0,
     Invalid,

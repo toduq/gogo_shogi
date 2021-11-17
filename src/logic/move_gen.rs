@@ -1,11 +1,12 @@
 use super::*;
 use once_cell::sync::Lazy;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 pub fn all_valid_moves(board: &Board) -> Vec<Move> {
     valid_moves(board, true)
 }
 
+#[allow(unused)]
 pub fn moves_only(board: &Board) -> Vec<Move> {
     valid_moves(board, false)
 }
@@ -57,10 +58,12 @@ fn valid_moves(board: &Board, include_hands: bool) -> Vec<Move> {
 
     if include_hands {
         // piece from hands
+        let mut generated: HashSet<Piece> = HashSet::new();
         for (pos, piece) in board.hands.iter().enumerate() {
-            if *piece == Piece::Absent || piece.turn() != my_turn {
+            if *piece == Piece::Absent || piece.turn() != my_turn || generated.contains(piece) {
                 continue;
             }
+            generated.insert(*piece);
             for dst in 0..25 {
                 if board.at(dst) != Piece::Absent {
                     continue;
@@ -210,10 +213,15 @@ static PIECE_MOVES_WITH_POSITION: Lazy<HashMap<(u8, usize), Vec<Vec<Move>>>> = L
                                 && (6 <= *piece && *piece <= 13)
                             {
                                 // with promotion
-                                vec![
-                                    Move::new(&p, src, dst, true),
-                                    Move::new(&p, src, dst, false),
-                                ]
+                                if p.of_turn(Turn::Black) == Piece::BSilver {
+                                    vec![
+                                        Move::new(&p, src, dst, true),
+                                        Move::new(&p, src, dst, false),
+                                    ]
+                                } else {
+                                    // bishop, rook and pawn must promote
+                                    vec![Move::new(&p, src, dst, true)]
+                                }
                             } else {
                                 vec![Move::new(&p, src, dst, false)]
                             }

@@ -6,7 +6,10 @@ use logic::*;
 use std::time::SystemTime;
 
 fn main() {
-    println!("Board size is {}", std::mem::size_of::<Board>());
+    println!(
+        "Option<Turn> size is {}",
+        std::mem::size_of::<Option<Turn>>()
+    );
     let mut b = Board::init();
     println!("{}", b);
 

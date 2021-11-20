@@ -3,39 +3,48 @@ use once_cell::sync::Lazy;
 use std::collections::{HashMap, HashSet};
 
 pub fn all_valid_moves(board: &Board) -> Vec<Move> {
-    valid_moves(board, true)
+    valid_moves(board, board.turn, true)
 }
 
-#[allow(unused)]
-pub fn moves_only(board: &Board) -> Vec<Move> {
-    valid_moves(board, false)
-}
-
-// pub fn moves_of_check(board: &Board) -> Vec<Move> {
-//     let mut next_board = board.clone();
-//     valid_moves(board, true)
-//         .iter()
-//         .filter(|m| {
-//             next_board.copy_from(board);
-//             next_board.put_move(m);
-//             next_board.flip_turn();
-//             is_check_or_win(&next_board)
-//         })
-//         .map(|m| *m)
-//         .collect()
-// }
-
-fn valid_moves(board: &Board, include_hands: bool) -> Vec<Move> {
-    if is_king_absent(board) {
-        return vec![]; // game is finished
+// returns only taking-moves or evasion moves
+pub fn qsearch_moves(board: &Board) -> Vec<Move> {
+    let mut next_board = board.clone();
+    if is_checked(board) {
+        // evasion moves
+        valid_moves(board, board.turn, true)
+            .into_iter()
+            .filter(|m| {
+                next_board.copy_from(board);
+                next_board.put_move(m);
+                next_board.flip_turn();
+                !is_checked(&next_board)
+            })
+            .collect()
+    } else {
+        // taking moves and checking moves
+        valid_moves(board, board.turn, true)
+            .into_iter()
+            .filter(|m| {
+                if !board.at(m.dst as usize).is_absent() {
+                    return true;
+                }
+                next_board.copy_from(board);
+                next_board.put_move(m);
+                is_checked(&next_board)
+            })
+            .collect()
     }
+}
 
-    let my_turn = board.turn;
+fn valid_moves(board: &Board, turn: Turn, include_hands: bool) -> Vec<Move> {
+    if board.won.is_some() {
+        return vec![];
+    }
     let mut moves = Vec::new();
 
     // move piece
     for (pos, piece) in board.squares.iter().enumerate() {
-        if *piece == Piece::Absent || piece.turn() != my_turn {
+        if *piece == Piece::Absent || piece.turn() != turn {
             continue;
         }
         for ms in &PIECE_MOVES_WITH_POSITION[&(*piece as u8, pos)] {
@@ -44,7 +53,7 @@ fn valid_moves(board: &Board, include_hands: bool) -> Vec<Move> {
                 if dst_piece.is_absent() {
                     // empty. can go through
                     moves.push(*m);
-                } else if dst_piece.turn() != my_turn {
+                } else if dst_piece.turn() != turn {
                     // occupied by opponent. have to stop.
                     moves.push(*m);
                     break;
@@ -60,7 +69,7 @@ fn valid_moves(board: &Board, include_hands: bool) -> Vec<Move> {
         // piece from hands
         let mut generated: HashSet<Piece> = HashSet::new();
         for (pos, piece) in board.hands.iter().enumerate() {
-            if *piece == Piece::Absent || piece.turn() != my_turn || generated.contains(piece) {
+            if *piece == Piece::Absent || piece.turn() != turn || generated.contains(piece) {
                 continue;
             }
             generated.insert(*piece);
@@ -75,27 +84,15 @@ fn valid_moves(board: &Board, include_hands: bool) -> Vec<Move> {
     moves
 }
 
-fn is_king_absent(b: &Board) -> bool {
-    let king_count = b
-        .squares
-        .iter()
-        .map(|p| p.of_turn(Turn::Black))
-        .filter(|p| *p == Piece::BKing)
-        .count();
-    king_count != 2
+pub fn is_checked(b: &Board) -> bool {
+    let my_king = Piece::BKing.of_turn(b.turn);
+    match b.squares.iter().enumerate().find(|p| *p.1 == my_king) {
+        None => false, // lose
+        Some((my_king_pos, _)) => valid_moves(b, b.turn.next(), false)
+            .iter()
+            .any(|m| m.dst == my_king_pos as u8),
+    }
 }
-
-// pub fn is_check_or_win(b: &Board) -> bool {
-//     let opp_king = Piece::BKing.of_turn(b.turn.next());
-//     let opp_king_pos = b.squares.iter().find(|p| **p == opp_king);
-//     if opp_king_pos.is_none() {
-//         return true; // wins
-//     }
-//     let opp_king_pos = opp_king_pos.unwrap();
-//     valid_moves(b, false)
-//         .iter()
-//         .any(|m| m.dst == opp_king_pos.as_u8())
-// }
 
 // The followings are cache
 
@@ -234,3 +231,54 @@ static PIECE_MOVES_WITH_POSITION: Lazy<HashMap<(u8, usize), Vec<Vec<Move>>>> = L
     }
     map
 });
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn qsearch_moves_taking() {
+        let mut b = Board::empty();
+        b.put_move(&Move::new(&Piece::WKing, 109, 2, false));
+        b.put_move(&Move::new(&Piece::WGold, 109, 6, false));
+        b.put_move(&Move::new(&Piece::WSilver, 109, 8, false));
+        b.put_move(&Move::new(&Piece::BGold, 109, 12, false));
+        b.put_move(&Move::new(&Piece::BKing, 109, 17, false));
+        b.flip_turn();
+        println!("{}", b);
+
+        assert!(!is_checked(&b));
+
+        let result: HashSet<Move> = qsearch_moves(&b).into_iter().collect();
+        let expected: HashSet<Move> = vec![
+            Move::new(&Piece::BGold, 12, 6, false),
+            Move::new(&Piece::BGold, 12, 7, false),
+            Move::new(&Piece::BGold, 12, 8, false),
+        ]
+        .into_iter()
+        .collect();
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn qsearch_moves_evasion() {
+        let mut b = Board::empty();
+        b.put_move(&Move::new(&Piece::WKing, 109, 2, false));
+        b.put_move(&Move::new(&Piece::WGold, 109, 6, false));
+        b.put_move(&Move::new(&Piece::WSilver, 109, 8, false));
+        b.put_move(&Move::new(&Piece::BKing, 109, 12, false));
+        println!("{}", b);
+
+        assert!(is_checked(&b));
+
+        let result: HashSet<Move> = qsearch_moves(&b).into_iter().collect();
+        let expected: HashSet<Move> = vec![
+            Move::new(&Piece::BKing, 12, 16, false),
+            Move::new(&Piece::BKing, 12, 17, false),
+            Move::new(&Piece::BKing, 12, 18, false),
+        ]
+        .into_iter()
+        .collect();
+        assert_eq!(result, expected);
+    }
+}

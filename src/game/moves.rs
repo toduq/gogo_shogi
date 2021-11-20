@@ -1,6 +1,6 @@
 use super::Piece;
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Move {
     pub piece: Piece,
     pub src: u8,

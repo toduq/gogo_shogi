@@ -3,8 +3,9 @@ use super::{Move, Piece, Turn};
 #[derive(Clone, Debug, PartialEq)]
 pub struct Board {
     pub squares: [Piece; 25],
-    pub turn: Turn,
     pub hands: [Piece; 10],
+    pub turn: Turn,
+    pub won: Option<Turn>,
 }
 
 impl Board {
@@ -23,8 +24,9 @@ impl Board {
         }
         Board {
             squares: s,
-            turn: Turn::Black,
             hands: [Piece::Absent; 10],
+            turn: Turn::Black,
+            won: None,
         }
     }
 
@@ -32,8 +34,9 @@ impl Board {
     pub fn empty() -> Board {
         Board {
             squares: [Piece::Absent; 25],
-            turn: Turn::Black,
             hands: [Piece::Absent; 10],
+            turn: Turn::Black,
+            won: None,
         }
     }
 
@@ -76,33 +79,15 @@ impl Board {
                     break;
                 }
             }
+            if took.of_turn(Turn::Black) == Piece::BKing {
+                self.won = Some(took.flip().turn());
+            }
         }
     }
 
     #[allow(unused)]
     pub fn flip_turn(&mut self) {
         self.turn = self.turn.next();
-    }
-
-    pub fn is_finished(&self) -> (bool, Turn) {
-        let mut b_king = false;
-        let mut w_king = false;
-        for p in &self.squares {
-            match *p {
-                Piece::BKing => {
-                    b_king = true;
-                }
-                Piece::WKing => {
-                    w_king = true;
-                }
-                _ => {}
-            }
-        }
-        match (b_king, w_king) {
-            (false, true) => (true, Turn::White),
-            (true, false) => (true, Turn::Black),
-            _ => (false, Turn::Black),
-        }
     }
 
     // There are 23 absent squares and it uses 23 bits.

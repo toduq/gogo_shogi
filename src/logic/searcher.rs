@@ -1,3 +1,4 @@
+use super::checkmate::MateResult;
 use super::*;
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
@@ -10,15 +11,15 @@ pub struct SearchResult {
     pub searched: i32,
 }
 
-const SEARCH_DEPTH: u8 = 2;
-const QSEARCH_EPTH: u8 = 4;
+const SEARCH_DEPTH: u8 = 3;
+const QSEARCH_EPTH: u8 = 3;
 const SCORE_LIMIT: i32 = 100_000_000;
 const WIN_THRESH: i32 = 90_000_000;
 
 pub fn find_best_move(b: &Board) -> Option<SearchResult> {
     let mut last_result = search_result_of(0, 0);
     for depth in 1..=SEARCH_DEPTH {
-        last_result = rec_search(b, 0, depth, -SCORE_LIMIT, SCORE_LIMIT);
+        last_result = rec_search(b, 0, depth, -SCORE_LIMIT, SCORE_LIMIT, false);
         if last_result.m == invalid_move() {
             return None;
         } else if last_result.score > WIN_THRESH {
@@ -33,14 +34,26 @@ pub fn find_best_move(b: &Board) -> Option<SearchResult> {
 }
 
 // if rec_search finds `score > beta`, the result will be discarded by alpha-beta.
-fn rec_search(b: &Board, depth: u8, max_depth: u8, alpha: i32, beta: i32) -> SearchResult {
+fn rec_search(
+    b: &Board,
+    depth: u8,
+    max_depth: u8,
+    alpha: i32,
+    beta: i32,
+    need_qsearch: bool,
+) -> SearchResult {
     if b.won.is_some() {
         // always lose on this case.
         return search_result_of(-SCORE_LIMIT + (depth as i32), 1);
     }
     if depth >= max_depth {
         // do q search
-        return q_rec_search(b, depth, depth + QSEARCH_EPTH, evaluator::evaluate(b), beta);
+        let qsearch_depth = if need_qsearch {
+            depth + QSEARCH_EPTH
+        } else {
+            depth
+        };
+        return q_rec_search(b, depth, qsearch_depth, evaluator::evaluate(b), beta);
     }
     let moves = move_gen::all_valid_moves(b);
 
@@ -52,7 +65,15 @@ fn rec_search(b: &Board, depth: u8, max_depth: u8, alpha: i32, beta: i32) -> Sea
         next_board.copy_from(b);
         next_board.put_move(&m);
 
-        let result = rec_search(&next_board, depth + 1, max_depth, -beta, -best.score);
+        let is_taking_move = !b.squares[m.dst as usize].is_absent();
+        let result = rec_search(
+            &next_board,
+            depth + 1,
+            max_depth,
+            -beta,
+            -best.score,
+            is_taking_move,
+        );
         let score = -result.score;
         best.searched += result.searched;
         if score > best.score {
@@ -75,12 +96,12 @@ fn q_rec_search(b: &Board, depth: u8, max_depth: u8, alpha: i32, beta: i32) -> S
     }
     if depth >= max_depth {
         // evaluate because max_depth
-        return search_result_of(evaluator::evaluate(b), 1);
+        return evaluate_leaf(b, depth);
     }
-    let moves = move_gen::qsearch_moves(b);
+    let moves = move_gen::taking_moves(b);
     if moves.is_empty() {
         // evaluate because its quiescence
-        return search_result_of(evaluator::evaluate(b), 1);
+        return evaluate_leaf(b, depth);
     }
 
     let moves = reorder_moves(b, &moves);
@@ -103,6 +124,14 @@ fn q_rec_search(b: &Board, depth: u8, max_depth: u8, alpha: i32, beta: i32) -> S
         }
     }
     best
+}
+
+fn evaluate_leaf(b: &Board, depth: u8) -> SearchResult {
+    match checkmate::is_checkmate(b) {
+        MateResult::Unknown => search_result_of(evaluator::evaluate(b), 1),
+        MateResult::Win => search_result_of(SCORE_LIMIT - (depth as i32), 1),
+        MateResult::Lose => search_result_of(-SCORE_LIMIT + (depth as i32), 1),
+    }
 }
 
 fn update_move_order_table(m: &Move) {
@@ -163,10 +192,8 @@ fn move_priority(
     let enemy_king_pos = b
         .squares
         .iter()
-        .enumerate()
-        .find(|p| *p.1 == Piece::BKing.of_turn(b.turn.next()))
-        .unwrap()
-        .0;
+        .position(|p| *p == Piece::BKing.of_turn(b.turn.next()))
+        .unwrap();
     priority += (4 - ((enemy_king_pos as i32 / 5) - (m.dst as i32 / 5)).abs()) * 500;
     priority += (4 - ((enemy_king_pos as i32 % 5) - (m.dst as i32 % 5)).abs()) * 500;
 
@@ -244,52 +271,38 @@ mod tests {
 
     #[test]
     fn avoid_checkmate() {
-        let mut b = board_gen::from_str("41wk,43bg,22bg,15bk");
+        let mut b = gen("41wk,43bg,22bg,15bk");
         b.flip_turn();
-        println!("{}", b);
-
         let result = find_best_move(&b);
         assert_eq!(result.unwrap().m, Move::new(&Piece::WKing, 1, 0, false));
     }
 
     #[test]
     fn avoid_checkmate_by_taking() {
-        let mut b = board_gen::from_str("51wk,11br,12br,52bs,42bs,15bk");
+        let mut b = gen("51wk,11br,12br,52bs,42bs,15bk");
         b.flip_turn();
-        println!("{}", b);
-
         let result = find_best_move(&b);
         assert_eq!(result.unwrap().m, Move::new(&Piece::WKing, 0, 5, false));
     }
 
     #[test]
     fn checkmate_with_1_moves() {
-        let b = board_gen::from_str("41wk,43bg,15bk,__bs");
-        println!("{}", b);
-
+        let b = gen("41wk,43bg,15bk,__bs");
         let result = find_best_move(&b);
         assert_eq!(result.unwrap().m, Move::new(&Piece::BSilver, 100, 6, false),);
     }
 
-    // #[test]
-    // fn checkmate_with_3_moves() {
-    //     // https://www.aonoshogi.com/3tetsume/000/001.php
-    //     let mut b = Board::empty();
-    //     // for hands
-    //     b.put_move(&Move::new(&Piece::WGold, 109, 9, false));
-    //     b.put_move(&Move::new(&Piece::WSilver, 109, 8, false));
-    //     // put pieces
-    //     b.put_move(&Move::new(&Piece::WRook, 100, 0, false));
-    //     b.put_move(&Move::new(&Piece::WKing, 100, 1, false));
-    //     b.put_move(&Move::new(&Piece::BPawnP, 100, 10, false));
-    //     b.put_move(&Move::new(&Piece::BPawnP, 10, 9, false));
-    //     b.put_move(&Move::new(&Piece::BPawnP, 9, 8, false));
-    //     // dummy
-    //     b.put_move(&Move::new(&Piece::BKing, 109, 24, false));
-    //     println!("{}", b);
+    #[test]
+    fn checkmate_with_3_moves() {
+        // https://www.aonoshogi.com/3tetsume/000/002.php
+        let b = gen("11wr,21wk,41bP,52bR,55bk,__bs,__wg,__ws");
+        let result = find_best_move(&b);
+        assert_eq!(result.unwrap().m, Move::new(&Piece::BPawnP, 1, 2, false));
+    }
 
-    //     let result = find_best_move(&b);
-    //     println!("{:?}", result);
-    //     assert_eq!(result.unwrap().m, Move::new(&Piece::BSilver, 101, 7, false));
-    // }
+    fn gen(s: &str) -> Board {
+        let b = board_gen::from_str(s);
+        println!("{}", b);
+        b
+    }
 }

@@ -6,34 +6,36 @@ pub fn all_valid_moves(board: &Board) -> Vec<Move> {
     valid_moves(board, board.turn, true)
 }
 
-// returns only taking-moves or evasion moves
-pub fn qsearch_moves(board: &Board) -> Vec<Move> {
+pub fn taking_moves(board: &Board) -> Vec<Move> {
+    valid_moves(board, board.turn, true)
+        .into_iter()
+        .filter(|m| !board.at(m.dst as usize).is_absent())
+        .collect()
+}
+
+pub fn check_moves(board: &Board) -> Vec<Move> {
     let mut next_board = board.clone();
-    if is_checked(board) {
-        // evasion moves
-        valid_moves(board, board.turn, true)
-            .into_iter()
-            .filter(|m| {
-                next_board.copy_from(board);
-                next_board.put_move(m);
-                next_board.flip_turn();
-                !is_checked(&next_board)
-            })
-            .collect()
-    } else {
-        // taking moves and checking moves
-        valid_moves(board, board.turn, true)
-            .into_iter()
-            .filter(|m| {
-                if !board.at(m.dst as usize).is_absent() {
-                    return true;
-                }
-                next_board.copy_from(board);
-                next_board.put_move(m);
-                is_checked(&next_board)
-            })
-            .collect()
-    }
+    valid_moves(board, board.turn, true)
+        .into_iter()
+        .filter(|m| {
+            next_board.copy_from(board);
+            next_board.put_move(m);
+            is_checked(&next_board)
+        })
+        .collect()
+}
+
+pub fn evasion_moves(board: &Board) -> Vec<Move> {
+    let mut next_board = board.clone();
+    valid_moves(board, board.turn, true)
+        .into_iter()
+        .filter(|m| {
+            next_board.copy_from(board);
+            next_board.put_move(m);
+            next_board.flip_turn();
+            !is_checked(&next_board)
+        })
+        .collect()
 }
 
 fn valid_moves(board: &Board, turn: Turn, include_dropping: bool) -> Vec<Move> {
@@ -85,9 +87,9 @@ fn valid_moves(board: &Board, turn: Turn, include_dropping: bool) -> Vec<Move> {
 
 pub fn is_checked(b: &Board) -> bool {
     let my_king = Piece::BKing.of_turn(b.turn);
-    match b.squares.iter().enumerate().find(|p| *p.1 == my_king) {
+    match b.squares.iter().position(|p| *p == my_king) {
         None => false, // lose
-        Some((my_king_pos, _)) => valid_moves(b, b.turn.next(), false)
+        Some(my_king_pos) => valid_moves(b, b.turn.next(), false)
             .iter()
             .any(|m| m.dst == my_king_pos as u8),
     }
@@ -230,54 +232,3 @@ static PIECE_MOVES_WITH_POSITION: Lazy<HashMap<(u8, usize), Vec<Vec<Move>>>> = L
     }
     map
 });
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn qsearch_moves_taking() {
-        let mut b = Board::empty();
-        b.put_move(&Move::new(&Piece::WKing, 109, 2, false));
-        b.put_move(&Move::new(&Piece::WGold, 109, 6, false));
-        b.put_move(&Move::new(&Piece::WSilver, 109, 8, false));
-        b.put_move(&Move::new(&Piece::BGold, 109, 12, false));
-        b.put_move(&Move::new(&Piece::BKing, 109, 17, false));
-        b.flip_turn();
-        println!("{}", b);
-
-        assert!(!is_checked(&b));
-
-        let result: HashSet<Move> = qsearch_moves(&b).into_iter().collect();
-        let expected: HashSet<Move> = vec![
-            Move::new(&Piece::BGold, 12, 6, false),
-            Move::new(&Piece::BGold, 12, 7, false),
-            Move::new(&Piece::BGold, 12, 8, false),
-        ]
-        .into_iter()
-        .collect();
-        assert_eq!(result, expected);
-    }
-
-    #[test]
-    fn qsearch_moves_evasion() {
-        let mut b = Board::empty();
-        b.put_move(&Move::new(&Piece::WKing, 109, 2, false));
-        b.put_move(&Move::new(&Piece::WGold, 109, 6, false));
-        b.put_move(&Move::new(&Piece::WSilver, 109, 8, false));
-        b.put_move(&Move::new(&Piece::BKing, 109, 12, false));
-        println!("{}", b);
-
-        assert!(is_checked(&b));
-
-        let result: HashSet<Move> = qsearch_moves(&b).into_iter().collect();
-        let expected: HashSet<Move> = vec![
-            Move::new(&Piece::BKing, 12, 16, false),
-            Move::new(&Piece::BKing, 12, 17, false),
-            Move::new(&Piece::BKing, 12, 18, false),
-        ]
-        .into_iter()
-        .collect();
-        assert_eq!(result, expected);
-    }
-}

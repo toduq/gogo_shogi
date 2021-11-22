@@ -68,8 +68,9 @@ impl Board {
     }
 
     #[allow(unused)]
-    pub fn flip_turn(&mut self) {
+    pub fn flip_turn(&mut self) -> &Board {
         self.turn = self.turn.next();
+        self
     }
 
     // There are 23 absent squares and it uses 23 bits.

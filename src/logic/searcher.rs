@@ -54,27 +54,14 @@ fn rec_search(b: &Board, depth: u8, max_depth: u8, alpha: i32, beta: i32) -> Sea
 
         let result = rec_search(&next_board, depth + 1, max_depth, -beta, -best.score);
         let score = -result.score;
-        // println!(
-        //     "{}[{}]got {} by {:?}",
-        //     " ".repeat(depth.into()),
-        //     depth,
-        //     score,
-        //     m
-        // );
+        best.searched += result.searched;
         if score > best.score {
             best.m = m;
             best.score = score;
         }
         if score > beta || score > WIN_THRESH {
-            // println!(
-            //     "{}[{}]beta cut by {}",
-            //     " ".repeat(depth.into()),
-            //     depth,
-            //     score
-            // );
             return best;
         }
-        best.searched += result.searched;
     }
 
     update_move_order_table(&best.m);
@@ -106,28 +93,14 @@ fn q_rec_search(b: &Board, depth: u8, max_depth: u8, alpha: i32, beta: i32) -> S
 
         let result = q_rec_search(&next_board, depth + 1, max_depth, -beta, -best.score);
         let score = -result.score;
-
-        // println!(
-        //     "{}[{}]got {} by {:?}",
-        //     " ".repeat(depth.into()),
-        //     depth,
-        //     score,
-        //     m
-        // );
+        best.searched += result.searched;
         if score > best.score {
             best.m = m;
             best.score = score;
         }
         if score > beta || score > WIN_THRESH {
-            // println!(
-            //     "{}[{}]beta cut by {}",
-            //     " ".repeat(depth.into()),
-            //     depth,
-            //     score
-            // );
             return best;
         }
-        best.searched += result.searched;
     }
     best
 }
@@ -271,49 +244,27 @@ mod tests {
 
     #[test]
     fn avoid_checkmate() {
-        let mut b = Board::empty();
-        b.put_move(&Move::new(&Piece::WKing, 100, 1, false));
-        b.put_move(&Move::new(&Piece::BGold, 100, 11, false));
-        b.put_move(&Move::new(&Piece::BGold, 100, 8, false));
-        // dummy
-        b.put_move(&Move::new(&Piece::BKing, 100, 24, false));
+        let mut b = board_gen::from_str("41wk,43bg,22bg,15bk");
         b.flip_turn();
-
         println!("{}", b);
+
         let result = find_best_move(&b);
         assert_eq!(result.unwrap().m, Move::new(&Piece::WKing, 1, 0, false));
     }
 
     #[test]
     fn avoid_checkmate_by_taking() {
-        let mut b = Board::empty();
-        b.put_move(&Move::new(&Piece::WKing, 100, 0, false));
-        b.put_move(&Move::new(&Piece::BRook, 100, 4, false));
-        b.put_move(&Move::new(&Piece::BRook, 100, 9, false));
-        b.put_move(&Move::new(&Piece::BSilver, 100, 5, false));
-        b.put_move(&Move::new(&Piece::BSilver, 100, 6, false));
-        // dummy
-        b.put_move(&Move::new(&Piece::BKing, 100, 24, false));
+        let mut b = board_gen::from_str("51wk,11br,12br,52bs,42bs,15bk");
         b.flip_turn();
-
         println!("{}", b);
+
         let result = find_best_move(&b);
         assert_eq!(result.unwrap().m, Move::new(&Piece::WKing, 0, 5, false));
     }
 
     #[test]
     fn checkmate_with_1_moves() {
-        // https://www.aonoshogi.com/1tetsume/000/006.php
-        let mut b = Board::empty();
-        // for hands
-        b.put_move(&Move::new(&Piece::WSilver, 109, 11, false));
-        // put pieces
-        b.put_move(&Move::new(&Piece::WKing, 109, 1, false));
-        b.put_move(&Move::new(&Piece::BGold, 100, 12, false));
-        b.put_move(&Move::new(&Piece::BGold, 12, 11, false));
-        // dummy
-        b.put_move(&Move::new(&Piece::BKing, 109, 24, false));
-        b.flip_turn();
+        let b = board_gen::from_str("41wk,43bg,15bk,__bs");
         println!("{}", b);
 
         let result = find_best_move(&b);

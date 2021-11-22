@@ -1,4 +1,4 @@
-use super::{Move, Piece, Turn};
+use super::{board_gen, Move, Piece, Turn};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Board {
@@ -10,27 +10,9 @@ pub struct Board {
 
 impl Board {
     pub fn init() -> Board {
-        let mut s = [Piece::Absent; 25];
-        s[0] = Piece::WRook;
-        s[1] = Piece::WBishop;
-        s[2] = Piece::WSilver;
-        s[3] = Piece::WGold;
-        s[4] = Piece::WKing;
-        s[9] = Piece::WPawn;
-        for i in 0..=9 {
-            if !s[i].is_absent() {
-                s[24 - i] = s[i].flip();
-            }
-        }
-        Board {
-            squares: s,
-            hands: [Piece::Absent; 10],
-            turn: Turn::Black,
-            won: None,
-        }
+        board_gen::from_str("11wk,21wg,31ws,41wb,51wr,12wp,54bp,15br,25bb,35bs,45bg,55bk")
     }
 
-    #[cfg(test)]
     pub fn empty() -> Board {
         Board {
             squares: [Piece::Absent; 25],
@@ -125,12 +107,12 @@ impl Board {
 
 impl std::fmt::Display for Board {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let mut buf = "   0  1  2  3  4 \n".to_string();
+        let mut buf = "   5  4  3  2  1 \n".to_string();
         buf += "   --------------\n";
         for y in 0..=4 {
             buf.push_str(&format!(
                 "{} |{} {} {} {} {}\n",
-                y,
+                y + 1,
                 self.at(y * 5).to_str(),
                 self.at(y * 5 + 1).to_str(),
                 self.at(y * 5 + 2).to_str(),

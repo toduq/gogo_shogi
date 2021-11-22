@@ -1,4 +1,5 @@
 mod board;
+pub mod board_gen;
 mod moves;
 mod piece;
 mod turn;

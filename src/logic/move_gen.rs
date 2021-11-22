@@ -36,7 +36,7 @@ pub fn qsearch_moves(board: &Board) -> Vec<Move> {
     }
 }
 
-fn valid_moves(board: &Board, turn: Turn, include_hands: bool) -> Vec<Move> {
+fn valid_moves(board: &Board, turn: Turn, include_dropping: bool) -> Vec<Move> {
     if board.won.is_some() {
         return vec![];
     }
@@ -65,8 +65,7 @@ fn valid_moves(board: &Board, turn: Turn, include_hands: bool) -> Vec<Move> {
         }
     }
 
-    if include_hands {
-        // piece from hands
+    if include_dropping {
         let mut generated: HashSet<Piece> = HashSet::new();
         for (pos, piece) in board.hands.iter().enumerate() {
             if *piece == Piece::Absent || piece.turn() != turn || generated.contains(piece) {

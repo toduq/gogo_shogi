@@ -16,19 +16,7 @@ pub fn from_str(s: &str) -> Board {
         } else {
             Turn::White
         };
-        let piece = match chars[i * 5 + 3] {
-            b'k' => Piece::BKing,
-            b'g' => Piece::BGold,
-            b's' => Piece::BSilver,
-            b'b' => Piece::BBishop,
-            b'r' => Piece::BRook,
-            b'p' => Piece::BPawn,
-            b'S' => Piece::BSilverP,
-            b'B' => Piece::BBishopP,
-            b'R' => Piece::BRookP,
-            b'P' => Piece::BPawnP,
-            _ => Piece::Invalid,
-        };
+        let piece = piece_repr(chars[i * 5 + 3]);
         if chars[i * 5] == b'_' {
             for i in 0..10 {
                 if board.hands[i].is_absent() {
@@ -42,6 +30,22 @@ pub fn from_str(s: &str) -> Board {
         };
     }
     board
+}
+
+pub fn piece_repr(p: u8) -> Piece {
+    match p {
+        b'k' => Piece::BKing,
+        b'g' => Piece::BGold,
+        b's' => Piece::BSilver,
+        b'b' => Piece::BBishop,
+        b'r' => Piece::BRook,
+        b'p' => Piece::BPawn,
+        b'S' => Piece::BSilverP,
+        b'B' => Piece::BBishopP,
+        b'R' => Piece::BRookP,
+        b'P' => Piece::BPawnP,
+        _ => Piece::Invalid,
+    }
 }
 
 #[cfg(test)]

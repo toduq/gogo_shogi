@@ -11,7 +11,7 @@ pub struct SearchResult {
     pub searched: i32,
 }
 
-const SEARCH_DEPTH: u8 = 3;
+const SEARCH_DEPTH: u8 = 4;
 const QSEARCH_EPTH: u8 = 3;
 const SCORE_LIMIT: i32 = 100_000_000;
 const WIN_THRESH: i32 = 90_000_000;
@@ -80,7 +80,7 @@ fn rec_search(
             best.m = m;
             best.score = score;
         }
-        if score > beta || score > WIN_THRESH {
+        if score >= beta || score > WIN_THRESH {
             return best;
         }
     }
